@@ -3,7 +3,13 @@
 
 import { useRef, useState } from "react";
 
-export default function Recorder({ onText }: { onText: (t: string) => void }) {
+export default function Recorder({
+  onText,
+  className,
+}: {
+  onText: (t: string) => void;
+  className?: string; // 省略可。外から見た目を指定したいとき用
+}) {
   const [recording, setRecording] = useState(false);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -39,7 +45,7 @@ export default function Recorder({ onText }: { onText: (t: string) => void }) {
   }
 
   return (
-    <button onClick={recording ? stopRec : startRec}>
+    <button className={className} onClick={recording ? stopRec : startRec}>
       {recording ? "■ 録音停止して文字にする" : "🎤 録音する"}
     </button>
   );

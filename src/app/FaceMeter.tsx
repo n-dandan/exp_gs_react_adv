@@ -3,7 +3,13 @@
 
 import { useEffect, useRef, useState } from "react";
 
-export default function FaceMeter({ onScore }: { onScore: (n: number) => void }) {
+export default function FaceMeter({
+  onScore,
+  className,
+}: {
+  onScore: (n: number) => void;
+  className?: string; // 省略可。外から見た目を指定したいとき用
+}) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [smile, setSmile] = useState(0);
   const borderClass =
@@ -70,7 +76,7 @@ export default function FaceMeter({ onScore }: { onScore: (n: number) => void })
   }, []);
 
   return (
-    <div>
+    <div className={className}>
       <video
         ref={videoRef}
         className={`border-10 ${borderClass}`}

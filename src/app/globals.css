@@ -1,32 +1,53 @@
 @import "tailwindcss";
 
+/* ============================================================
+   ライトモードの色（いままでの色をそのまま）
+   ここで決めた変数を、下の @theme inline で Tailwind に結びつける
+   ============================================================ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #F1FAFA;   /* ページ全体の地の色 */
+  --foreground: #171717;   /* 基本の文字色 */
+  --surface:    #fefefe;   /* カード・入力欄の背景（bg-surface） */
+  --ink:        #37474F;   /* 少し濃いめの文字色 */
+  --primary:    #007AFF;   /* 見出しの帯 */
+  --secondary:  #64B5F6;   /* 枠線など */
+  --accent:     #FF4081;   /* ボタン */
 }
 
+/* ============================================================
+   ダークモードの色
+   同じ変数名を上書きするだけ。クラス名の側は何も変えなくてよい
+   ============================================================ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0F1A1D;   /* ライトの水色を、暗くしたトーン */
+    --foreground: #E6EDEF;
+    --surface:    #1A282C;   /* ★ 白ではなく暗い色にする（これが今回の修正の要） */
+    --ink:        #C7D3D7;   /* 文字色なので、暗い背景では明るくする */
+    --primary:    #007AFF;   /* ブランド色は変えない（白文字が乗るため） */
+    --secondary:  #4E7C93;   /* 枠線は暗い背景でギラつかないよう少し落とす */
+    --accent:     #FF4081;   /* ブランド色は変えない */
+  }
+}
+
+/* ============================================================
+   Tailwind のクラス名に結びつける
+   `inline` を付けると var(...) がそのまま使われるので、
+   上の :root を書き換えるだけで色が追従する
+   ※ ここで直接 #F1FAFA のように書いてしまうと固定され、
+     ダークモードに切り替わらなくなる（以前の不具合の原因）
+   ============================================================ */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface:    var(--surface);
+  --color-ink:        var(--ink);
+  --color-primary:    var(--primary);
+  --color-secondary:  var(--secondary);
+  --color-accent:     var(--accent);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@theme {
-  --color-primary: #007AFF;
-  --color-secondary: #64B5F6;
-  --color-surface: #fefefe;
-  --color-ink: #37474F;
-  --color-accent: #FF4081;
-  --color-background: #F1FAFA;
-  --color-white: #FFFFFF;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
