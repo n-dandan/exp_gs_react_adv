@@ -1,4 +1,4 @@
-  import { pgTable, serial, text, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, integer, timestamp } from "drizzle-orm/pg-core";
   
   export const sessions = pgTable("sessions", {    
     id: serial("id").primaryKey(),              // 通し番号（主キー・自動）
