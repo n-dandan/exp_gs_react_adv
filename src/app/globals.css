@@ -1,58 +1,697 @@
 @import "tailwindcss";
-@plugin "daisyui";
 
 /* ============================================================
-   ライトモードの色（いままでの色をそのまま）
-   ここで決めた変数を、下の @theme inline で Tailwind に結びつける
+   書記長ゲーム のデザイントークン（docs/design.md）
+   構成主義のポスターを下敷きに、赤・黒・紙色の3色で組む。
+   ダークモード対応は入れない：固定パレットのポスターなので、
+   紙色が暗色に反転すると意図した見た目が崩れる。
    ============================================================ */
 :root {
-  --background: #F1FAFA;   /* ページ全体の地の色 */
-  --foreground: #171717;   /* 基本の文字色 */
-  --surface:    #fefefe;   /* カード・入力欄の背景（bg-surface） */
-  --ink:        #37474F;   /* 少し濃いめの文字色 */
-  --primary:    #007AFF;   /* 見出しの帯 */
-  --secondary:  #64B5F6;   /* 枠線など */
-  --accent:     #FF4081;   /* ボタン */
+  --red: #c8102e;        /* 旗の赤：ボタン、見出しのアクセント、ゲージ */
+  --red-deep: #8b0000;   /* 血の赤：危険域、ゲームオーバー背景、ホバー */
+  --black: #151313;      /* 印刷の黒：本文、枠線、暗い背景 */
+  --paper: #efe3c6;      /* 古紙：明るい面の背景。純白は使わない */
+  --paper-dark: #d9c79a; /* 日焼けした紙：カード、吹き出し、区切り */
+  --gold: #c9a227;       /* 勲章の金：強調、星、クリア画面 */
+  --gray: #6b6560;       /* インクのにじみ：補助テキスト、ラベル */
+  --flash: #ff2a2a;      /* 加算の瞬間に重ねる色 */
+
+  /* next/font が払い出す変数に別名を張る */
+  --font-display-ja: var(--font-dela), "Noto Sans JP", sans-serif;
+  --font-display-cy: var(--font-russo), var(--font-oswald), sans-serif;
+  --font-body: var(--font-noto), sans-serif;
+  --font-label: var(--font-oswald), var(--font-noto), sans-serif;
+
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Tailwind のクラス名からも使えるようにする（bg-paper / text-red など） */
+@theme inline {
+  --color-red: var(--red);
+  --color-red-deep: var(--red-deep);
+  --color-black: var(--black);
+  --color-paper: var(--paper);
+  --color-paper-dark: var(--paper-dark);
+  --color-gold: var(--gold);
+  --color-gray: var(--gray);
+
+  --font-display-ja: var(--font-display-ja);
+  --font-display-cy: var(--font-display-cy);
+  --font-body: var(--font-body);
+  --font-label: var(--font-label);
 }
 
 /* ============================================================
-   ダークモードの色
-   同じ変数名を上書きするだけ。クラス名の側は何も変えなくてよい
+   土台
    ============================================================ */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0F1A1D;   /* ライトの水色を、暗くしたトーン */
-    --foreground: #E6EDEF;
-    --surface:    #1A282C;   /* ★ 白ではなく暗い色にする（これが今回の修正の要） */
-    --ink:        #C7D3D7;   /* 文字色なので、暗い背景では明るくする */
-    --primary:    #007AFF;   /* ブランド色は変えない（白文字が乗るため） */
-    --secondary:  #4E7C93;   /* 枠線は暗い背景でギラつかないよう少し落とす */
-    --accent:     #FF4081;   /* ブランド色は変えない */
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--black);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+/* 角丸は使わない（design.md 3-3） */
+*,
+*::before,
+*::after {
+  border-radius: 0;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+button:disabled {
+  cursor: default;
+}
+
+/* 紙の質感。印刷物の粗さを出す（design.md 3-1） */
+.noise::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.06;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ============================================================
+   画面の外枠
+   ============================================================ */
+.screen {
+  position: relative;
+  min-height: 100dvh;
+  max-width: 1440px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  padding: 48px 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
+  overflow: hidden;
+}
+
+/* タイトルとクリアの背景：中心から広がる光線（design.md 3-2） */
+.screen--rays::after {
+  content: "";
+  position: absolute;
+  inset: -20%;
+  z-index: -1;
+  pointer-events: none;
+  background: repeating-conic-gradient(
+    from 0deg at 50% 50%,
+    color-mix(in srgb, var(--red) 12%, transparent) 0deg 6deg,
+    transparent 6deg 12deg
+  );
+}
+.screen--rays-gold::after {
+  background: repeating-conic-gradient(
+    from 0deg at 50% 50%,
+    color-mix(in srgb, var(--gold) 18%, transparent) 0deg 6deg,
+    transparent 6deg 12deg
+  );
+}
+
+/* ゲームオーバーだけ背景を反転する */
+.screen--purge {
+  background: var(--red-deep);
+  color: var(--paper);
+}
+/* 縁の赤黒ストライプ */
+.screen--purge::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border: 24px solid transparent;
+  border-image: repeating-linear-gradient(
+      45deg,
+      var(--black) 0 12px,
+      var(--red) 12px 24px
+    )
+    24;
+}
+.screen > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ============================================================
+   文字
+   ============================================================ */
+.display {
+  font-family: var(--font-display-ja);
+  font-weight: 400;
+  letter-spacing: 0.05em;
+  line-height: 1;
+  margin: 0;
+}
+/* 画面タイトルだけ版ずれの赤い影をつける（多用しない） */
+.display--shift {
+  text-shadow: 3px 3px 0 var(--red);
+}
+.display--huge {
+  font-size: clamp(56px, 11vh, 112px);
+}
+.display--large {
+  font-size: clamp(40px, 7vh, 64px);
+}
+.display--section {
+  font-size: 32px;
+}
+
+.cy {
+  font-family: var(--font-display-cy);
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+  font-size: 14px;
+  color: var(--gray);
+}
+
+.label {
+  font-family: var(--font-label);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.muted {
+  color: var(--gray);
+}
+
+/* 五芒星（design.md 3-2） */
+.star {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  background: var(--gold);
+  clip-path: polygon(
+    50% 0%,
+    61% 35%,
+    98% 35%,
+    68% 57%,
+    79% 91%,
+    50% 70%,
+    21% 91%,
+    32% 57%,
+    2% 35%,
+    39% 35%
+  );
+}
+.star--red {
+  background: var(--red);
+}
+
+/* ============================================================
+   カード・ボタン
+   ============================================================ */
+.card {
+  position: relative;
+  box-sizing: border-box;
+  background: var(--paper-dark);
+  border: 4px solid var(--black);
+  box-shadow: 6px 6px 0 var(--black);
+  padding: 28px 32px;
+}
+.card--flat {
+  box-shadow: none;
+}
+.card--dark {
+  background: var(--black);
+  color: var(--paper);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 56px;
+  padding: 0 40px;
+  border: none;
+  background: var(--red);
+  color: var(--paper);
+  box-shadow: 6px 6px 0 var(--black);
+  font-family: var(--font-display-cy);
+  font-size: 18px;
+  letter-spacing: 0.2em;
+  transition: background 0.15s var(--ease), transform 0.08s var(--ease),
+    box-shadow 0.08s var(--ease);
+}
+.btn:hover:not(:disabled) {
+  background: var(--red-deep);
+}
+.btn:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 0 0 0 var(--black);
+}
+.btn:disabled {
+  background: var(--paper-dark);
+  color: var(--gray);
+  box-shadow: 4px 4px 0 var(--gray);
+}
+
+.btn--sub {
+  background: var(--paper);
+  color: var(--black);
+  border: 4px solid var(--black);
+  box-shadow: none;
+}
+.btn--sub:hover:not(:disabled) {
+  background: var(--paper-dark);
+}
+
+.linkish {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: var(--gray);
+  text-decoration: underline;
+}
+
+/* ============================================================
+   疑念ゲージ（design.md 4-2）
+   ============================================================ */
+.gauge {
+  position: relative;
+  flex-grow: 1;
+  height: 20px;
+  box-sizing: border-box;
+  border: 4px solid var(--black);
+  background: var(--paper-dark);
+}
+.gauge__fill {
+  height: 100%;
+  background: var(--gold);
+  transition: width 0.25s var(--ease), background 0.25s var(--ease);
+}
+.gauge__fill[data-zone="caution"] {
+  background: var(--red);
+}
+.gauge__fill[data-zone="danger"] {
+  background: var(--red-deep);
+}
+/* 進んでいる印象を出す斜めストライプ */
+.gauge__fill::after {
+  content: "";
+  display: block;
+  height: 100%;
+  background: repeating-linear-gradient(
+    45deg,
+    color-mix(in srgb, var(--black) 22%, transparent) 0 4px,
+    transparent 4px 8px
+  );
+}
+/* 70の位置の縦線 */
+.gauge__mark {
+  position: absolute;
+  top: -8px;
+  width: 3px;
+  height: 28px;
+  background: var(--black);
+}
+.gauge__mark .star {
+  position: absolute;
+  top: -12px;
+  left: -5px;
+  width: 12px;
+  height: 12px;
+}
+.gauge__value {
+  font-family: var(--font-label);
+  font-weight: 700;
+  font-size: 20px;
+  width: 84px;
+  text-align: right;
+}
+.gauge__value[data-zone="danger"] {
+  color: var(--red-deep);
+}
+
+/* ============================================================
+   チャットの吹き出し（design.md 4-3）
+   ============================================================ */
+.log {
+  flex-grow: 1;
+  min-height: 0;
+  overflow-y: auto;
+  border: 4px solid var(--black);
+  background: var(--paper);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.turnBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 78%;
+  animation: rise 0.2s var(--ease);
+}
+.turnBlock--left {
+  align-self: flex-start;
+}
+.turnBlock--right {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+
+.bubble {
+  position: relative;
+  box-sizing: border-box;
+  padding: 12px 16px;
+  font-size: 17px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+/* 書記長：黒地に紙色。角は左下だけ斜めにカット */
+.bubble--secretary {
+  background: var(--black);
+  color: var(--paper);
+  font-weight: 700;
+  font-size: 18px;
+  padding-left: 28px;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 14px 100%, 0 calc(100% - 14px));
+}
+.bubble--secretary .star {
+  position: absolute;
+  left: 8px;
+  top: 14px;
+  width: 11px;
+  height: 11px;
+}
+/* あなた：日焼けした紙に黒 */
+.bubble--player {
+  background: var(--paper-dark);
+  color: var(--black);
+  border: 3px solid var(--black);
+}
+/* 認識中：点線の枠に斜体 */
+.bubble--interim {
+  background: transparent;
+  color: var(--gray);
+  border: 3px dashed var(--gray);
+  font-style: italic;
+}
+
+.gainLabel {
+  font-family: var(--font-label);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  color: var(--red);
+}
+
+/* 返答待ちの「…」 */
+.thinking::after {
+  content: "…";
+  animation: blink 1s steps(1, end) infinite;
+}
+
+/* ============================================================
+   音声入力バー（design.md 4-4）
+   ============================================================ */
+.voicebar {
+  box-sizing: border-box;
+  height: 96px;
+  padding: 0 20px;
+  background: var(--black);
+  border-top: 4px solid var(--red);
+  color: var(--paper);
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.mic {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: none;
+  background: var(--red);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.mic:disabled {
+  background: var(--gray);
+}
+.mic--live {
+  animation: pulse 0.8s var(--ease) infinite;
+}
+.wave line {
+  stroke: var(--paper);
+  stroke-width: 2;
+  stroke-linecap: round;
+  transition: y1 0.15s var(--ease), y2 0.15s var(--ease);
+}
+
+/* ============================================================
+   肖像（design.md 4-5）とカメラ（4-6）
+   ============================================================ */
+.portrait {
+  position: relative;
+  flex-grow: 1;
+  background: var(--black);
+  color: var(--paper);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  /* 肖像エリアと会話エリアの境界を斜めにカット（design.md 3-1） */
+  clip-path: polygon(0 0, 100% 0, calc(100% - 28px) 100%, 0 100%);
+}
+.portrait__eyes {
+  position: absolute;
+  left: 22%;
+  right: 22%;
+  top: 38%;
+  height: 4px;
+  background: var(--red);
+  opacity: 0;
+}
+.portrait__eyes--hit {
+  animation: eyeline 0.15s var(--ease);
+}
+.portrait__cy {
+  position: absolute;
+  bottom: 10px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  color: color-mix(in srgb, var(--paper) 45%, transparent);
+}
+
+.camera {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border: 4px solid var(--black);
+  box-sizing: border-box;
+  background: var(--black);
+  overflow: hidden;
+}
+.camera--lost {
+  border-color: var(--red-deep);
+}
+.camera video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  /* 白黒フィルム風（design.md 4-6） */
+  filter: grayscale(1) contrast(1.15);
+}
+.camera__tag {
+  position: absolute;
+  left: 0;
+  top: 0;
+  background: var(--red);
+  color: var(--paper);
+  font-family: var(--font-label);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  padding: 2px 8px;
+}
+.camera__status {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  background: color-mix(in srgb, var(--black) 80%, transparent);
+  color: var(--paper);
+  font-family: var(--font-label);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  padding: 2px 8px;
+}
+
+/* ============================================================
+   スタンプ（design.md 4-7）
+   ============================================================ */
+.stamp {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 128px;
+  height: 128px;
+  border-radius: 50%;
+  border: 4px solid var(--red);
+  box-shadow: inset 0 0 0 6px var(--paper), inset 0 0 0 8px var(--red);
+  color: var(--red);
+  font-family: var(--font-display-ja);
+  font-size: 34px;
+  transform: rotate(-8deg);
+  animation: stampIn 0.3s var(--ease);
+}
+.stamp--gold {
+  border-color: var(--gold);
+  box-shadow: inset 0 0 0 6px var(--paper), inset 0 0 0 8px var(--gold);
+  color: var(--gold);
+}
+
+/* 結果画面：発言ログを上から黒く塗り潰していく */
+.redacted {
+  position: relative;
+}
+.redacted::after {
+  content: "";
+  position: absolute;
+  left: -4px;
+  right: -4px;
+  top: 45%;
+  height: 0.9em;
+  background: var(--black);
+  transform: scaleX(0);
+  transform-origin: left;
+  animation: redact 0.5s var(--ease) forwards;
+}
+
+/* ============================================================
+   演出（design.md 6. モーション）
+   ============================================================ */
+/* 加算の瞬間、画面全体に赤を重ねてすぐ消す */
+.flash {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  background: var(--flash);
+  animation: flash 0.15s var(--ease) forwards;
+}
+/* 危険域のビネット */
+.vignette {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+  animation: vignetteIn 0.4s var(--ease) forwards;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 55%,
+    color-mix(in srgb, var(--red-deep) 60%, transparent) 100%
+  );
+}
+/* 画面遷移のワイプ */
+.wipe {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  background: var(--black);
+  animation: wipe 0.35s var(--ease) forwards;
+}
+
+@keyframes flash {
+  from {
+    opacity: 0.25;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@keyframes vignetteIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes wipe {
+  0% {
+    transform: translateX(-100%);
+  }
+  50% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes blink {
+  50% {
+    opacity: 0.2;
+  }
+}
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--red) 35%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 12px transparent;
+  }
+}
+@keyframes stampIn {
+  from {
+    transform: rotate(-8deg) scale(1.4);
+    opacity: 0;
+  }
+  to {
+    transform: rotate(-8deg) scale(1);
+    opacity: 1;
+  }
+}
+@keyframes eyeline {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@keyframes redact {
+  to {
+    transform: scaleX(1);
   }
 }
 
-/* ============================================================
-   Tailwind のクラス名に結びつける
-   `inline` を付けると var(...) がそのまま使われるので、
-   上の :root を書き換えるだけで色が追従する
-   ※ ここで直接 #F1FAFA のように書いてしまうと固定され、
-     ダークモードに切り替わらなくなる（以前の不具合の原因）
-   ============================================================ */
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-surface:    var(--surface);
-  --color-ink:        var(--ink);
-  --color-primary:    var(--primary);
-  --color-secondary:  var(--secondary);
-  --color-accent:     var(--accent);
-
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* 動きを減らす設定の人には演出を出さない */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

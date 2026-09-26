@@ -34,3 +34,35 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+---
+
+## このリポジトリについて
+
+面接練習アプリ（講座課題）を土台に、`docs/` の仕様書に沿って「書記長ゲーム」へ改造したものです。
+
+### ゲーム本体
+
+| 場所 | 役割 |
+| --- | --- |
+| `src/app/page.tsx` | ゲーム本体。1枚のクライアントページ＋`phase`で画面を出し分ける |
+| `src/app/FaceMeter.tsx` | face-api の検出ループ。発話中だけ200ms間隔で表情と顔の位置を測る |
+| `src/game/rules.ts` | **しきい値と加算値。ゲームの難易度調整はこのファイルだけで完結する** |
+| `src/game/gameReducer.ts` | 状態遷移。疑念ゲージの加算は `applyGain()` 1本に集約 |
+| `src/game/scenario.ts` | 3日分のシナリオ（仕様書から改変せずに写したもの） |
+| `src/game/useSpeechRecognition.ts` | Web Speech API による音声入力（Chrome / Edge 前提） |
+| `src/app/api/secretary/route.ts` | Groqに書記長の返答と怪しさ判定をさせる。必ず `{reply, suspicion}` を返す |
+
+`.env.local` に `GROQ_API_KEY` が必要です。
+
+### 面接アプリの名残（ゲームからは使っていません）
+
+講座で作った機能をそのまま残しています。ゲームの動作には関与しません。
+
+- `/history`、`/api/sessions` … Neon + Drizzle の練習記録（Clerk認証つき）
+- `/api/coach` … 面接フィードバック生成（テキストを返す旧ルート）
+- `/api/deliver` … Resend でのメール送信
+- `/api/transcribe`、`src/app/Recorder.tsx` … Groq Whisper での文字起こし（音声入力の第2案）
+- `/api/tts` … 音声合成（今回のスコープ外）
+
+これらを動かすには `DATABASE_URL` / Clerk の2つのキー / `RESEND_API_KEY` が必要です。

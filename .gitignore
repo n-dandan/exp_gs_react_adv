@@ -41,3 +41,6 @@ yarn-error.log*
 next-env.d.ts
 
 CLAUDE.md
+
+# ドキュメント（ローカル専用・中のファイルすべてを除外）
+docs/
