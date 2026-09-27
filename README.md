@@ -28,6 +28,10 @@
 
 カメラ映像はブラウザの外に出ません（顔の判定は端末内で完結します）。声はChromeの音声認識を通じてGoogleへ、回答テキストはGroqへ送られます。
 
+### 発表スライド → https://claude.ai/artifact/8VSXtsZHSFUAcVCgy5nGNs
+
+6枚・2〜3分。作った経緯（スターリンの逸話）、ゲームの説明、仕組み、デザインの方針をまとめたものです。
+
 ## 使った技術
 
 - **Next.js 16（App Router）/ React 19 / TypeScript**
