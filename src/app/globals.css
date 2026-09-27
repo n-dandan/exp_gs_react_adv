@@ -568,8 +568,10 @@ button:disabled {
   position: absolute;
   left: -4px;
   right: -4px;
-  top: 45%;
-  height: 0.9em;
+  /* 文字の高さぶんを完全に覆う（半分だけ隠れていると不具合に見える） */
+  top: 50%;
+  margin-top: -0.62em;
+  height: 1.24em;
   background: var(--black);
   transform: scaleX(0);
   transform-origin: left;

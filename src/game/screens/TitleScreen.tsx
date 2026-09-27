@@ -26,6 +26,12 @@ export default function TitleScreen({
     <ScreenFrame variant="rays">
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
         <div className="cy">Face-Survival Dialogue Game</div>
+        <p
+          className="display"
+          style={{ fontSize: "clamp(18px, 2.6vw, 30px)", color: "var(--red)", margin: 0 }}
+        >
+          世界一怖い面談
+        </p>
         <h1 className="display display--shift display--large">書記長ゲーム</h1>
         <div className="cy" style={{ color: "var(--black)" }}>
           General Secretary
