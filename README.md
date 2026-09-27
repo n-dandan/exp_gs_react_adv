@@ -1,68 +1,57 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 書記長ゲーム（世界一怖い面談）
 
-## Getting Started
+## これは何？
 
-First, run the development server:
+架空の独裁国家の書記長に、3日間問い詰められる対話ゲームです。
+カメラとマイクの前で声で答えます。**答えた内容だけでなく、答えているときの顔も見られています。**
+目を逸らす・動揺する・はぐらかすと「疑念ゲージ」が上がり、100に達すると粛清（ゲームオーバー）。正解はありません。反対しても、媚びても疑われます。
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+元ネタは「スターリンと話すとき、目を逸らすと粛清された」という逸話です。
+講座で作った面接練習アプリ（表情認識＋AIフィードバック）を改造して、面接官を書記長に、笑顔スコアを疑念ゲージに置き換えました。
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 遊ぶ → https://exp-gs-react-adv-xi.vercel.app/
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. **Chrome か Edge** で開く（Safari・Firefoxは音声入力が動きません）
+2. 「カメラとマイクを許可」→ 自分の顔が映ったら「出仕する」
+3. 書記長の質問に**声で答える**。話し終えて3秒黙ると自動で送信されます
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1プレイ3〜5分（1日3問 × 3日間）。明るい場所でどうぞ。暗いと顔が検出できず、勝手に疑われます。
 
-## Learn More
+**疑念ゲージが上がる条件**
 
-To learn more about Next.js, take a look at the following resources:
+| 条件 | 判定 | 加算 |
+| --- | --- | --- |
+| 目を逸らした | 顔が未検出、または顔の中心が中央から25%ずれる | +5 / 秒 |
+| 不審な表情 | fearful・surprised・disgusted が 0.6 以上 | +3 / 秒 |
+| 笑いすぎ | happy が 0.8 以上 | +2 / 秒 |
+| 怪しい回答 | AIが回答を読んで判定 | +0〜30 |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+カメラ映像はブラウザの外に出ません（顔の判定は端末内で完結します）。声はChromeの音声認識を通じてGoogleへ、回答テキストはGroqへ送られます。
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 使った技術
 
-## Deploy on Vercel
+- **Next.js 16（App Router）/ React 19 / TypeScript**
+- **face-api**（表情と顔の向きの判定。ブラウザ内で200msごとに推論）
+- **Web Speech API**（音声入力。無音3秒で自動送信）
+- **Groq**（書記長の返答と、回答の怪しさ判定）
+- **Tailwind CSS v4 + 自前のCSS変数**（構成主義ポスター風の見た目）
+- **Vercel**（公開。mainへのpushで自動デプロイ）
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+面接アプリ時代の Neon + Drizzle（DB）/ Clerk（ログイン）/ Resend（メール）も残っていますが、ゲームでは使っていません。
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 工夫したところ
 
----
+- **疑念ゲージの加算を1つの関数に集約した。** 表情（200msごと）とAI判定（送信時）の2経路があり、どちらでもゲームオーバー判定が必要。`useState` だと「加算した後の値を見て画面を切り替える」が書けないので `useReducer` にして、加算・上限・決め手の記録・演出を `applyGain()` 1本にまとめた
+- **表情の監視は発話中だけにした。** 書記長が喋っている間や画面遷移中に減点されると理不尽なので、マイクON中しか推論を動かしていない。待機中はCPUも使わない
+- **「1秒」をフレーム数ではなく経過ミリ秒で数えた。** 推論が200msを超えて飛んだフレームがあるとフレーム数では過小カウントになるため、`performance.now()` の差分を積んでいる
+- **AIに返答と疑念値をJSONで同時に返させた。** パースに失敗しても、APIがエラーでも、固定文「……続けろ。」で必ずターンが進む。ゲームなので止まる方が致命的
+- **表情だけでは即死しないようにした。** 表情由来の加算は1ターン30が上限。AI判定はその外
+- **デザインを先に決めてから実装した。** 色3系統・書体4つ・角丸なし・影は黒のベタ塗り、と決めてから作ったので、実装中に見た目で迷わなかった
 
-## このリポジトリについて
+## やり残したこと
 
-面接練習アプリ（講座課題）を土台に、`docs/` の仕様書に沿って「書記長ゲーム」へ改造したものです。
-
-### ゲーム本体
-
-| 場所 | 役割 |
-| --- | --- |
-| `src/app/page.tsx` | ゲーム本体。1枚のクライアントページ＋`phase`で画面を出し分ける |
-| `src/app/FaceMeter.tsx` | face-api の検出ループ。発話中だけ200ms間隔で表情と顔の位置を測る |
-| `src/game/rules.ts` | **しきい値と加算値。ゲームの難易度調整はこのファイルだけで完結する** |
-| `src/game/gameReducer.ts` | 状態遷移。疑念ゲージの加算は `applyGain()` 1本に集約 |
-| `src/game/scenario.ts` | 3日分のシナリオ（仕様書から改変せずに写したもの） |
-| `src/game/useSpeechRecognition.ts` | Web Speech API による音声入力（Chrome / Edge 前提） |
-| `src/app/api/secretary/route.ts` | Groqに書記長の返答と怪しさ判定をさせる。必ず `{reply, suspicion}` を返す |
-
-`.env.local` に `GROQ_API_KEY` が必要です。
-
-### 面接アプリの名残（ゲームからは使っていません）
-
-講座で作った機能をそのまま残しています。ゲームの動作には関与しません。
-
-- `/history`、`/api/sessions` … Neon + Drizzle の練習記録（Clerk認証つき）
-- `/api/coach` … 面接フィードバック生成（テキストを返す旧ルート）
-- `/api/deliver` … Resend でのメール送信
-- `/api/transcribe`、`src/app/Recorder.tsx` … Groq Whisper での文字起こし（音声入力の第2案）
-- `/api/tts` … 音声合成（今回のスコープ外）
-
-これらを動かすには `DATABASE_URL` / Clerk の2つのキー / `RESEND_API_KEY` が必要です。
+- **視線を見ていない。** 顔の向きと在席で代用しているので、「顔は正面のまま目だけ逸らす」は検知できない。やるなら MediaPipe の虹彩ランドマークが必要
+- 表情7種のうち使えたのは `happy` と「不審な表情」の3種だけ。`sad` はうつむくだけ、`angry` は集中しているだけで上がるので採用できなかった
+- スマホ非対応（PCブラウザ専用）
+- 書記長のセリフの読み上げ（音声合成）。APIは用意してあるが、再生中に自分の声を認識してしまう問題が未解決
+- プレイ結果の保存。DBは残っているので、最終ゲージや「最も疑われた発言」を記録すれば成長の記録になる
